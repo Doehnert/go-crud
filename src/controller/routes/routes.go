@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/Doehnert/crud/src/controller"
+	"github.com/Doehnert/crud/src/model"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,9 +11,11 @@ func InitRoutes(
 	userController controller.UserControllerInterface,
 ) {
 
-	r.GET("/getUserById/:userId", userController.FindUserById)
-	r.GET("/getUserByEmail/:userEmail", userController.FindUserByEmail)
+	r.GET("/getUserById/:userId", model.VerifyTokenMiddleware, userController.FindUserById)
+	r.GET("/getUserByEmail/:userEmail", model.VerifyTokenMiddleware, userController.FindUserByEmail)
 	r.POST("/createUser", userController.CreateUser)
-	r.GET("/updateUser/:userId", userController.UpdateUser)
+	r.PUT("/updateUser/:userId", userController.UpdateUser)
 	r.DELETE("/deleteUser/:userId", userController.DeleteUser)
+
+	r.POST("/login", userController.LoginUser)
 }

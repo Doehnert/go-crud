@@ -12,13 +12,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	UserDomainInterface model.UserDomainInterface
-)
-
-func (uc *userControllerInterface) CreateUser(c *gin.Context) {
-	logger.Info("Init CreateUser controller")
-	var userRequest request.UserRequest
+func (uc *userControllerInterface) LoginUser(c *gin.Context) {
+	logger.Info("Init LoginUser controller")
+	var userRequest request.UserLogin
 
 	if err := c.ShouldBindJSON(&userRequest); err != nil {
 		logger.Error("Error trying to marshal object", err)
@@ -29,25 +25,24 @@ func (uc *userControllerInterface) CreateUser(c *gin.Context) {
 		return
 	}
 
-	domain := model.NewUserDomain(
+	domain := model.NewUserLoginDomain(
 		userRequest.Email,
 		userRequest.Password,
-		userRequest.Name,
-		userRequest.Age,
 	)
 
-	domainResult, err := uc.service.CreateUserService(domain)
+	domainResult, token, err := uc.service.LoginUserService(domain)
 	if err != nil {
 		logger.Error(
-			"Error trying to call CreateUser service",
+			"Error trying to call LoginUser service",
 			err,
-			zap.String("journey", "createUser"))
+			zap.String("journey", "LoginUser"))
 		c.JSON(err.Code, err)
 		return
 	}
 
-	logger.Info("User created successfully", zap.String("jouney", "createUser"))
+	logger.Info("User created successfully", zap.String("jouney", "LoginUser"))
 
+	c.Header("Authorization", token)
 	c.JSON(http.StatusOK, view.ConvertDomainToResponse(domainResult))
 
 }

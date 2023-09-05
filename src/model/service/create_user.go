@@ -9,10 +9,15 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ud *userDomainService) CreateUser(
+func (ud *userDomainService) CreateUserService(
 	userDomain model.UserDomainInterface,
 ) (model.UserDomainInterface, *rest_err.RestErr) {
 	logger.Info("Init createUser model", zap.String("jouney", "createUser"))
+
+	user, _ := ud.FindUserByEmailService(userDomain.GetEmail())
+	if user != nil {
+		return nil, rest_err.NewBadRequestError("Email is already registered in another account")
+	}
 
 	userDomain.EncryptPassword()
 

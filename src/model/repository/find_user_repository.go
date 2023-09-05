@@ -11,6 +11,7 @@ import (
 	"github.com/Doehnert/crud/src/model/repository/entity"
 	"github.com/Doehnert/crud/src/model/repository/entity/converter"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
@@ -71,7 +72,8 @@ func (ur *userRepository) FindUserByID(
 
 	userEntity := &entity.UserEntity{}
 
-	filter := bson.D{{Key: "_id", Value: id}}
+	objectID, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.D{{Key: "_id", Value: objectID}}
 	err := collection.FindOne(
 		context.Background(),
 		filter,
@@ -100,6 +102,55 @@ func (ur *userRepository) FindUserByID(
 
 	logger.Info("FindUserByID repo executed succesfully",
 		zap.String("journey", "ffindUserByID"))
+	zap.String("userId", userEntity.ID.Hex())
+	return converter.ConvertEntityToDomain(*userEntity), nil
+}
+
+func (ur *userRepository) FindUserByEmailAndPassword(
+	email string,
+	password string,
+) (model.UserDomainInterface, *rest_err.RestErr) {
+	logger.Info("Init findUser repo",
+		zap.String("journey", "findUserByEmailandPassword"))
+
+	collection_name := os.Getenv(MONGODB_USER_COLLECTION)
+	collection := ur.databaseConnection.Collection(collection_name)
+
+	userEntity := &entity.UserEntity{}
+
+	filter := bson.D{
+		{Key: "email", Value: email},
+		{Key: "password", Value: password},
+	}
+	err := collection.FindOne(
+		context.Background(),
+		filter,
+	).Decode(&userEntity)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			errorMessage := fmt.Sprint(
+				"User or password is invalid",
+			)
+			logger.Error(
+				errorMessage,
+				err,
+				zap.String("journey", "findUserByEmail"),
+			)
+			return nil, rest_err.NewForbiddenError(errorMessage)
+		}
+		errorMessage := "Error trying to find user by email and pwd"
+		logger.Error(
+			errorMessage,
+			err,
+			zap.String("journey", "findUserByEmail"),
+		)
+		return nil, rest_err.NewInternalServerError(errorMessage)
+	}
+
+	logger.Info("FindUserByEmailandPassword repo executed succesfully",
+		zap.String("journey", "ffindUserByEmail"))
+	zap.String("journey", email)
 	zap.String("userId", userEntity.ID.Hex())
 	return converter.ConvertEntityToDomain(*userEntity), nil
 }
